@@ -1,0 +1,19 @@
+#!/bin/bash
+
+BROWN='\033[0;33m'
+NC='\033[0m' # No Color
+
+color () {
+  printf "${BROWN}${1}${NC}"
+}
+
+color "Branch name? "
+read -r branch
+
+color "Fetching latest code...\n"
+git fetch
+
+color "Checkout latest master...\n"
+git checkout remotes/origin/master
+
+git checkout -b $branch

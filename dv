@@ -1,0 +1,123 @@
+#!/bin/sh
+
+SOURCE_DIR=$HOME/src
+
+set +ev
+
+start_config () {
+  cd ~/.bin
+
+  tmux new -d -s config -n editor
+
+  tmux new-window -n editor -t config: "editor dv"
+
+  cd -
+}
+
+start_airstream() {
+  cd $SOURCE_DIR/airstream
+
+  # Open new window for server
+  tmux new -d -s airstream -n server
+
+  # Start rails server
+  tmux send -t airstream:server "yarn dev" ENTER
+
+  # Open new window with editor
+  tmux new-window -n editor -t airstream: "vim ."
+
+  # Split editor pane in two
+  tmux split-pane -t airstream:editor.0
+
+  # Start typechecker in new pane
+  tmux send -t airstream:editor.1 "yarn tsc --watch" ENTER
+
+  # Focus editor pane and resize to hide typechecker
+  tmux select-pane -t airstream:editor.0
+  tmux resize-pane -t airstream:editor.0 -Z
+
+  cd -
+}
+
+start_rails () {
+  cd $SOURCE_DIR/hipcamp-reserve
+
+  # Kill server if running
+  pids=$(lsof -i :3000 | grep ruby | awk '{print $2}' | xargs echo)
+  if [ ! -z "$pids" ]
+  then
+    kill -9 $pids
+  fi
+
+  # Open new window for server
+  tmux new -d -s rails -n server
+
+  # Start rails server
+  tmux send -t rails:server ./script/server.sh ENTER
+
+  # Open new window for console
+  tmux new-window -n console -t rails:
+  tmux send -t rails:console "rails c" ENTER
+
+  # Open new window with editor
+  tmux new-window -n editor -t rails: "vim ."
+
+  make -C config
+
+  cd -
+}
+
+stop () {
+  tmux kill-session -t $1
+}
+
+up() {
+  start_rails
+  start_airstream
+}
+
+down() {
+  stop rails
+  stop airstream
+}
+
+attach() {
+  if [ ! -z "$2" ]
+  then
+    echo "$2"
+    tmux select-window -t $1:$2
+  fi
+  tmux attach -t $1
+}
+
+command=$1
+target=$2
+
+if [ -z "$1" ]
+then
+  command="start"
+fi
+if [ -z "$2" ]
+then
+  target="rails"
+fi
+
+if [ "$command" = "up" ]
+then
+  up
+elif [ "$command" = "down" ]
+then
+  down
+elif [ "$command" = "into" ]
+then
+  start_$target
+  attach $target $3
+elif [ "$command" = "attach" ]
+then
+  attach $target $3
+elif [ "$command" = "stop" ]
+then
+  stop $target
+else
+  ${command}_${target}
+fi

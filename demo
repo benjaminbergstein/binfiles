@@ -1,0 +1,13 @@
+#!/bin/bash
+
+DEMO=cypress
+
+if [ "$1" == "" ]
+then
+	git tag | grep ${DEMO}-demo
+elif [ "$1" == "tag" ]
+then
+	git tag -f ${DEMO}-demo-$2
+else
+	git checkout ${DEMO}-demo-$1
+fi
