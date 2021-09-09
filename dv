@@ -32,6 +32,9 @@ start_airstream() {
   # Start typechecker in new pane
   tmux send -t airstream:editor.1 "yarn tsc --watch" ENTER
 
+  # Open new window with editor
+  tmux new-window -n lint -t airstream:
+
   # Focus editor pane and resize to hide typechecker
   tmux select-pane -t airstream:editor.0
   tmux resize-pane -t airstream:editor.0 -Z
@@ -62,9 +65,20 @@ start_rails () {
   # Open new window with editor
   tmux new-window -n editor -t rails: "vim ."
 
+  # Open new window for rspec
+  tmux new-window -n rspec -t rails:
+
   make -C config
 
   cd -
+}
+
+lint_airstream() {
+  tmux send -t airstream:lint "./script/lint.sh" ENTER
+}
+
+test_rails () {
+  tmux send -t rails:rspec "bundle exec rspec $@" ENTER
 }
 
 stop () {
@@ -119,5 +133,7 @@ elif [ "$command" = "stop" ]
 then
   stop $target
 else
-  ${command}_${target}
+  shift
+  shift
+  ${command}_${target} $@
 fi
