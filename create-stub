@@ -1,0 +1,23 @@
+#!/bin/bash
+
+command=$1
+bindir=$(dirname $0)
+scriptloc=$bindir/$command
+
+shift
+
+if [ -f $scriptloc ]
+then
+  echo "File exists at destination $scriptloc"
+  exit 1
+fi
+
+write () {
+  echo $@ >> $scriptloc
+}
+
+write "#!/bin/bash"
+write ""
+write "$@"
+
+chmod +x $bindir/$command
