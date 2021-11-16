@@ -42,6 +42,31 @@ start_airstream() {
   cd -
 }
 
+start_pocketknife() {
+  cd $SOURCE_DIR/pocketknife
+
+  # Open new window for server
+  tmux new -d -s pocketknife -n app
+
+  # Start ...
+  tmux send -t pocketknife:app "cd pocketknife-app && yarn start" ENTER
+  tmux split-pane -t pocketknife:app.0
+
+  # Start ios in a different pane
+  tmux send -t pocketknife:app.1 "cd pocketknife-app && yarn ios:local" ENTER
+
+  # Open new window with editor
+  tmux new-window -n editor -t pocketknife: "vim ."
+
+  # Split editor pane in two
+  # tmux split-pane -t pocketknife:editor.0
+
+  # Open new window with editor
+  # tmux new-window -n lint -t pocketknife:
+
+  cd -
+}
+
 start_rails () {
   cd $SOURCE_DIR/hipcamp-reserve
 
@@ -56,7 +81,7 @@ start_rails () {
   tmux new -d -s rails -n server
 
   # Start rails server
-  tmux send -t rails:server ./script/server.sh ENTER
+  tmux send -t rails:server "bundle && bundle exec rake db:migrate && bundle exec rails s" ENTER
 
   # Open new window for console
   tmux new-window -n console -t rails:
@@ -88,11 +113,13 @@ stop () {
 up() {
   start_rails
   start_airstream
+  start_pocketknife
 }
 
 down() {
   stop rails
   stop airstream
+  stop pocketknife
 }
 
 attach() {
