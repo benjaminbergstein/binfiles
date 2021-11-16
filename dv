@@ -4,40 +4,98 @@ SOURCE_DIR=$HOME/src
 
 set +ev
 
+app () {
+  app=$1
+}
+
+window () {
+  window=$1
+  command=$2
+
+  if [ "$init" != "1" ]
+  then
+    tmux new -d -s $app -n $window
+    init="1"
+
+    if [ ! -z "$command" ]
+    then
+      send "$command"
+    fi
+  else
+    if [ ! -z "$command" ]
+    then
+      tmux new-window -n $window -t $app:$pane_name "$command"
+    else
+      tmux new-window -n $window -t $app:$pane_name
+    fi
+  fi
+}
+
+send () {
+  command=$1
+  pane=$2
+
+  if [ ! -z "$pane" ]
+  then
+    target=$app:$window.$pane
+  else
+    target=$app:$window
+  fi
+
+  tmux send -t $target "$command" ENTER
+}
+
+command () {
+  command=$1
+  if [ ! -z "$command" ]
+  then
+    tmux new-window -n $window -t $app:$pane_name "$command"
+  else
+    tmux new-window -n $window -t $app:$pane_name
+  fi
+}
+
+focus () {
+  pane=$1
+  tmux select-pane -t $app:$pane
+  tmux resize-pane -t $app:$pane -Z
+}
+
 start_config () {
   cd ~/.bin
 
-  tmux new -d -s config -n editor
+  app config
 
-  tmux new-window -n editor -t config: "editor dv"
+  window editor "editor dv"
 
   cd -
+}
+
+split () {
+  command=$1
+  tmux split-pane -t $app:$window.0
+  send "$command" 1
 }
 
 start_airstream() {
   cd $SOURCE_DIR/airstream
 
+  app airstream
+
   # Open new window for server
-  tmux new -d -s airstream -n server
-
-  # Start rails server
-  tmux send -t airstream:server "yarn dev" ENTER
+  window server "yarn dev"
 
   # Open new window with editor
-  tmux new-window -n editor -t airstream: "vim ."
+  window editor "vim ."
 
-  # Split editor pane in two
-  tmux split-pane -t airstream:editor.0
-
-  # Start typechecker in new pane
-  tmux send -t airstream:editor.1 "yarn tsc --watch" ENTER
+  # Start typechecker in split pane
+  split "yarn tsc --watch"
 
   # Open new window with editor
-  tmux new-window -n lint -t airstream:
+  window lint
 
   # Focus editor pane and resize to hide typechecker
-  tmux select-pane -t airstream:editor.0
-  tmux resize-pane -t airstream:editor.0 -Z
+  focus editor.0
 
   cd -
 }
@@ -46,17 +104,16 @@ start_pocketknife() {
   cd $SOURCE_DIR/pocketknife
 
   # Open new window for server
-  tmux new -d -s pocketknife -n app
+  app pocketknife
 
-  # Start ...
-  tmux send -t pocketknife:app "cd pocketknife-app && yarn start" ENTER
-  tmux split-pane -t pocketknife:app.0
+  # Start dev server
+  window app "cd pocketknife-app && yarn start"
 
   # Start ios in a different pane
-  tmux send -t pocketknife:app.1 "cd pocketknife-app && yarn ios:local" ENTER
+  split "cd pocketknife-app && yarn ios:local"
 
   # Open new window with editor
-  tmux new-window -n editor -t pocketknife: "vim ."
+  window editor "vim ."
 
   # Split editor pane in two
   # tmux split-pane -t pocketknife:editor.0
@@ -71,27 +128,22 @@ start_rails () {
   cd $SOURCE_DIR/hipcamp-reserve
 
   # Kill server if running
-  pids=$(lsof -i :3000 | grep ruby | awk '{print $2}' | xargs echo)
-  if [ ! -z "$pids" ]
-  then
-    kill -9 $pids
-  fi
+  destroy-port 3000
 
   # Open new window for server
-  tmux new -d -s rails -n server
+  app rails
 
   # Start rails server
-  tmux send -t rails:server "bundle && bundle exec rake db:migrate && bundle exec rails s" ENTER
+  window server "bundle && bundle exec rake db:migrate && bundle exec rails s"
 
   # Open new window for console
-  tmux new-window -n console -t rails:
-  tmux send -t rails:console "rails c" ENTER
+  window console "rails c"
 
   # Open new window with editor
-  tmux new-window -n editor -t rails: "vim ."
+  window editor "vim ."
 
   # Open new window for rspec
-  tmux new-window -n rspec -t rails:
+  window rspec
 
   make -C config
 
@@ -99,11 +151,15 @@ start_rails () {
 }
 
 lint_airstream() {
-  tmux send -t airstream:lint "./script/lint.sh" ENTER
+  app airstream
+  window=lint
+  send "./script/lint.sh"
 }
 
 test_rails () {
-  tmux send -t rails:rspec "bundle exec rspec $@" ENTER
+  app rails
+  window=rspec
+  send "bundle exec rspec $@"
 }
 
 stop () {
