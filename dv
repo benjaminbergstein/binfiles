@@ -56,104 +56,18 @@ command () {
 }
 
 focus () {
-  pane=$1
-  tmux select-pane -t $app:$pane
-  tmux resize-pane -t $app:$pane -Z
-}
-
-start_config () {
-  cd ~/.bin
-
-  app config
-
-  window editor "editor dv"
-
-  cd -
+  window=$1
+  pane=$2
+  tmux select-window -t $app:$window
+  tmux resize-pane -t $app:$window.$pane -Z
+  tmux select-pane -t $app:$window.$pane
 }
 
 split () {
-  command=$1
+  window=$1
+  command=$2
   tmux split-pane -t $app:$window.0
   send "$command" 1
-}
-
-start_airstream() {
-  cd $SOURCE_DIR/airstream
-
-  app airstream
-
-  # Open new window for server
-  window server "yarn dev"
-
-  # Open new window with editor
-  window editor "vim ."
-
-  # Start typechecker in split pane
-  split "yarn tsc --watch"
-
-  # Open new window with editor
-  window lint
-
-  # Focus editor pane and resize to hide typechecker
-  focus editor.0
-
-  cd -
-}
-
-start_pocketknife() {
-  cd $SOURCE_DIR/pocketknife
-
-  # Open new window for server
-  app pocketknife
-
-  # Start dev server
-  window app "cd pocketknife-app && yarn start"
-
-  # Start ios in a different pane
-  split "cd pocketknife-app && yarn ios:local"
-
-  # Open new window with editor
-  window editor "vim ."
-
-  # Split editor pane in two
-  # tmux split-pane -t pocketknife:editor.0
-
-  # Open new window with editor
-  # tmux new-window -n lint -t pocketknife:
-
-  cd -
-}
-
-start_rails () {
-  cd $SOURCE_DIR/hipcamp-reserve
-
-  # Kill server if running
-  destroy-port 3000
-
-  # Open new window for server
-  app rails
-
-  # Start rails server
-  window server "bundle && bundle exec rake db:migrate && bundle exec rails s"
-
-  # Open new window for console
-  window console "rails c"
-
-  # Open new window with editor
-  window editor "vim ."
-
-  # Open new window for rspec
-  window rspec
-
-  make -C config
-
-  cd -
-}
-
-lint_airstream() {
-  app airstream
-  window=lint
-  send "./script/lint.sh"
 }
 
 test_rails () {
@@ -166,16 +80,22 @@ stop () {
   tmux kill-session -t $1
 }
 
+get_apps_list () {
+  get_config '.apps | keys | .[] | @json'
+}
+
 up() {
-  start_rails
-  start_airstream
-  start_pocketknife
+  while read app
+  do
+    dv start $(echo $app | xargs echo)
+  done <<< "$(get_apps_list)"
 }
 
 down() {
-  stop rails
-  stop airstream
-  stop pocketknife
+  while read app
+  do
+    dv stop $(echo $app | xargs echo)
+  done <<< "$(get_apps_list)"
 }
 
 attach() {
@@ -187,16 +107,75 @@ attach() {
   tmux attach -t $1
 }
 
+get_config () {
+  cat ~/.config/dv/config.json | jq --raw-output "$1"
+}
+
+get_app_config () {
+  get_config ".apps.${app}.$1"
+}
+
+run () {
+  if [ -z "$app" ]
+  then
+    app $1
+    shift
+  fi
+  init=1
+  window_or_script=$1
+  shift
+  script=$1
+  shift
+
+  if [ -z "$script" ]
+  then
+    window=run
+    script=$window_or_script
+    command=$(get_app_config "scripts.$script")
+    window run "$command $@"
+  else
+    window=$window_or_script
+    command=$(get_app_config "scripts.$script")
+    send "$command $@"
+  fi
+
+
+}
+
+start () {
+  app $1
+  root=$(get_config ".srcDir")
+  dir=$(get_app_config "dir")
+  start_commands="start[] | @json"
+
+  cd $root/$dir
+
+  while read cmd
+  do
+    command_name=$(echo "$cmd" | jq --raw-output '.[0]')
+    sub_command_name=$(echo "$cmd" | jq --raw-output '.[1]')
+    args=$(echo "$cmd" | jq --raw-output '.[2:] | join(" ")')
+
+    if [ "$command_name" = "exec" ]
+    then
+      $sub_command_name
+    elif [ "$command_name" = "run" ]
+    then
+      run $sub_command_name "$args"
+    else
+      $command_name $sub_command_name "$args"
+    fi
+  done <<< "$(get_app_config "$start_commands")"
+
+  cd -
+}
+
 command=$1
 target=$2
 
 if [ -z "$1" ]
 then
   command="start"
-fi
-if [ -z "$2" ]
-then
-  target="rails"
 fi
 
 if [ "$command" = "up" ]
@@ -207,16 +186,11 @@ then
   down
 elif [ "$command" = "into" ]
 then
-  start_$target
+  start $target
   attach $target $3
 elif [ "$command" = "attach" ]
 then
   attach $target $3
-elif [ "$command" = "stop" ]
-then
-  stop $target
 else
-  shift
-  shift
-  ${command}_${target} $@
+  $@
 fi
