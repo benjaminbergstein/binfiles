@@ -121,25 +121,32 @@ run () {
     app $1
     shift
   fi
+  if [ "$1" = "--here" ]
+  then
+    here=1
+    shift
+  fi
   init=1
-  window_or_script=$1
-  shift
+  if [ -z $window ]
+  then
+    window=run
+  fi
   script=$1
   shift
 
-  if [ -z "$script" ]
+  command=$(get_app_config "scripts.$script")
+
+  if [ ! -z "$here" ]
   then
-    window=run
-    script=$window_or_script
-    command=$(get_app_config "scripts.$script")
-    window run "$command $@"
-  else
-    window=$window_or_script
-    command=$(get_app_config "scripts.$script")
-    send "$command $@"
+    $command $@
   fi
 
-
+  if [ "$window" = "run" ]
+  then
+    window run "$command $@"
+  else
+    send "$command $@"
+  fi
 }
 
 start () {
@@ -153,17 +160,23 @@ start () {
   while read cmd
   do
     command_name=$(echo "$cmd" | jq --raw-output '.[0]')
-    sub_command_name=$(echo "$cmd" | jq --raw-output '.[1]')
+    first_arg=$(echo "$cmd" | jq --raw-output '.[1]')
     args=$(echo "$cmd" | jq --raw-output '.[2:] | join(" ")')
 
     if [ "$command_name" = "exec" ]
     then
-      $sub_command_name
+      $first_arg $args
     elif [ "$command_name" = "run" ]
     then
-      run $sub_command_name "$args"
+      if [ "$args" = "" ];
+      then
+        run $first_arg
+      else
+        window=$first_arg
+        run $args
+      fi
     else
-      $command_name $sub_command_name "$args"
+      $command_name $first_arg $args
     fi
   done <<< "$(get_app_config "$start_commands")"
 
@@ -184,6 +197,10 @@ then
 elif [ "$command" = "down" ]
 then
   down
+elif [ "$command" = "exec" ]
+then
+  shift
+  tmux new-session -d -s "exec-sesh" "$@"
 elif [ "$command" = "into" ]
 then
   start $target
