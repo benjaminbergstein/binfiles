@@ -2,7 +2,7 @@
 
 SOURCE_DIR=$HOME/src
 
-set +ev
+set +e
 
 app () {
   app=$1

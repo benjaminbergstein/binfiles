@@ -1,0 +1,31 @@
+#!/bin/bash
+srcDir=$(cat ~/.config/dv/config.json | jq --raw-output '.srcDir')
+
+jqc () {
+  cat ~/.config/dv/config.json | jq --raw-output "$1"
+}
+
+app=""
+while read c
+do
+  candidate=$(echo $c| xargs echo)
+  dir=$(jqc ".apps.$candidate.dir")
+  appDir=$srcDir/$dir
+
+  if [ "${PWD##$appDir}" != "${PWD}" ]
+  then
+    app=$candidate
+  fi
+done <<< "$(jqc '.apps | keys | .[] | @json')"
+
+if [ ! -z "$app" ]
+then
+  echo "$app"
+  exit
+fi
+
+if [ ! -z "$1" ]
+  echo $1
+  exit
+fi
+

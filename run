@@ -1,0 +1,9 @@
+#!/bin/bash
+
+app=$(detect-app $@)
+if [ "$1" = "$app" ]
+then
+  shift
+fi
+
+dv run $app $@

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+app=$(detect-app $@)
+
+dv stop $app
+dv start $app

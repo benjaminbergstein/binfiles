@@ -1,0 +1,19 @@
+#!/bin/bash
+
+main=$1
+extgroup=$2
+
+if [ -z "$main" ]
+then
+  main=master
+fi
+
+
+command="git diff --relative remotes/origin/$main head --name-only --diff-filter=d -- "
+
+if [ "$extgroup" = "js" ]
+then
+  $command '*.js' '*.jsx' '*.ts' '*.tsx'
+else
+  $command '*.rb'
+fi
