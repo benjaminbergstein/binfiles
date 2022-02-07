@@ -139,9 +139,7 @@ run () {
   if [ ! -z "$here" ]
   then
     $command $@
-  fi
-
-  if [ "$window" = "run" ]
+  elif [ "$window" = "run" ]
   then
     window run "$command $@"
   else

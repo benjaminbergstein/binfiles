@@ -10,7 +10,7 @@ color () {
 git add -p
 
 git log -1
-color "Edit? "
+color "Make a new commit? "
 read -r edit
 
 if [ "$edit" = "y" ]

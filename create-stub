@@ -21,3 +21,4 @@ write ""
 write "$@"
 
 chmod +x $bindir/$command
+echo $scriptloc
