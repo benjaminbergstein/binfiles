@@ -16,5 +16,6 @@ then
 else
   options=""
 fi
+
 git fetch
-git rebase $options remotes/origin/master --autosquash
+git rebase $options remotes/origin/$(app-config gitMain) --autosquash
