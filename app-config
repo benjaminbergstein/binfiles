@@ -1,0 +1,4 @@
+#!/bin/bash
+
+app=$(detect-app)
+cat "$HOME/.config/dv/config.json" | jq --raw-output ".apps.$app.$1"

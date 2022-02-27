@@ -1,0 +1,14 @@
+#!/bin/bash
+
+
+commit=$(git $@ | FZF | awk '{print $1}')
+
+echo $commit | pbcopy
+echo $commit
+
+if [ -z "$COMMAND" ]
+then
+  echo '' > /dev/null
+else
+  $COMMAND $commit
+fi
