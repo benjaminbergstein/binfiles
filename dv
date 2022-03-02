@@ -134,6 +134,11 @@ run () {
   script=$1
   shift
 
+  if [ -z "$script" ]
+  then
+    script=default
+  fi
+
   command=$(get_app_config "scripts.$script")
 
   if [ ! -z "$here" ]
