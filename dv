@@ -139,11 +139,20 @@ run () {
     script=default
   fi
 
-  command=$(get_app_config "scripts.$script")
+  command=$(get_app_config "scripts.$script" 2> /dev/null)
+  if [ $? != 0 ]
+  then
+    command=$script
+  fi
+
+  if [ "$command" = "null" ]
+  then
+    command=$script
+  fi
 
   if [ ! -z "$here" ]
   then
-    $command $@
+    eval $command $@
   elif [ "$window" = "run" ]
   then
     window run "$command $@"

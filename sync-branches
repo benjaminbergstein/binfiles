@@ -1,0 +1,19 @@
+#!/bin/bash
+
+branch=$(current-branch)
+
+sync_branch () {
+  proj_branch=$(current-branch)
+  if [ "$proj_branch" != "$branch" ]
+  then
+    git checkout $branch
+  fi
+}
+
+cd ~/src/airstream
+  sync_branch
+cd -
+
+cd ~/src/hipcamp-reserve
+  sync_branch
+cd -

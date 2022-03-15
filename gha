@@ -1,0 +1,103 @@
+#!/bin/bash
+
+target=$1
+shift
+
+if [ -z "$target" ]
+then
+  target=build
+fi
+
+workflow_id=$(app-config plugins.gha.$target)
+
+command=$1
+shift
+
+parsing_complete=0
+
+while [ ! -z "$1" ] && [ "$parsing_complete" != "1" ]
+do
+  arg=$1
+  shift
+
+  if [ "$arg" = "--open" ]
+  then
+    open=1
+  elif [ "$arg" = "--view" ]
+  then
+    view=1
+  elif [ "$arg" = "--notify" ]
+  then
+    notify=1
+  elif [ "$arg" = "--" ]
+  then
+    parsing_complete=1
+    post_command=$@
+  fi
+done
+
+_list () {
+  runs=$(gh run list --json createdAt,headBranch,databaseId,status -w $workflow_id)
+  echo "$runs" | jq --raw-output '.[] | [.databaseId, .headBranch, .createdAt, .status] | @tsv'
+}
+
+_select () {
+  parsed_runs=$(_list)
+
+  selected_run=$(echo "$parsed_runs" | FZF)
+  run_id=$(echo "$selected_run" | awk '{print $1}')
+
+  if [ "$command" = "select" ] && [ "$view" = "1" ]
+  then
+    gh run view $run_id
+  fi
+
+  echo $run_id
+}
+
+_watch () {
+  run_id=$(_select)
+
+  gh run watch $run_id --exit-status
+  exit_code=$?
+
+  if [ "$notify" = "1" ]
+  then
+    if [ $exit_code = 0 ]
+    then
+      title="Build successful"
+      body="Run $run_id finished successfully"
+    else
+      title="Build unsuccessful"
+      body="Run $run_id was not successful"
+    fi
+
+    show-notification "$title" "$body"
+  fi
+}
+
+_deploy () {
+  gh workflow run $workflow_id -F git_branch=$(current-branch)
+}
+
+_browse () {
+  open https://airstream-hipcamp-$(current-branch | tr "/" "-").vercel.app/en-US
+}
+
+case $command in
+  select) _select;;
+  watch) _watch;;
+  list) _list;;
+  deploy) _deploy;;
+  browse) _browse;;
+esac
+
+if [ "$open" = "1" ]
+then
+  gh run view --web $run_id
+fi
+
+if [ ! -z "$post_command" ]
+then
+  $post_command
+fi
