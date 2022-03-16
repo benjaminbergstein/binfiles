@@ -1,0 +1,44 @@
+#!/bin/bash
+
+fetch () {
+  path=$1
+  curl -X GET https://app.asana.com/api/1.0${path} \
+    -H 'Accept: application/json' \
+    -H "Authorization: Bearer $ASANA_TOKEN" 2> /dev/null
+}
+
+echo "Fetching your asana tasks..."
+
+me=$(fetch "/users/me")
+user_id=$(echo "$me" | jq --raw-output '.data.gid')
+workspace_id=$(echo "$me" | jq --raw-output '.data.workspaces[0].gid')
+
+tasks=$(fetch "/workspaces/$workspace_id/tasks/search?assignee.any=$user_id&opt_fields=name,projects.name&completed=false")
+
+task_fields='.data[] | [.gid, .name, .projects[0].name] | @tsv'
+selected_task=$(printf '%s\n' "$tasks" | jq --raw-output "$task_fields" | FZF --prompt "Asana Task? > ")
+task_id=$(echo "$selected_task" | awk '{print $1}')
+
+read -p "Title > " title
+read -p "Description > " summary
+read -p "How Has This Been Tested? > " tests
+
+if [ ! -z "$task_id" ]
+then
+  asana_url=https://app.asana.com/0/0/$task_id/f
+
+
+  body="## [Asana ticket]($asana_url)
+
+# Description
+
+$summary
+
+# How Has This Been Tested?
+
+$tests
+
+# Screenshots"
+fi
+
+gh pr create -t "$title" -b "$body"
