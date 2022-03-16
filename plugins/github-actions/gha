@@ -1,0 +1,152 @@
+#!/bin/bash
+
+plugindir=$(dirname $0)
+lastrunfile=$plugindir/.last-run-id
+if [ -f "$lastrunfile" ]
+then
+  last_run_id=$(cat $lastrunfile)
+fi
+
+target=$1
+shift
+
+if [ -z "$target" ]
+then
+  target=build
+fi
+
+workflow_id=$(app-config plugins.gha.$target)
+
+command=$1
+shift
+
+parsing_complete=0
+
+while [ ! -z "$1" ] && [ "$parsing_complete" != "1" ]
+do
+  arg=$1
+  shift
+
+  if [ "$arg" = "--open" ]
+  then
+    open=1
+  elif [ "$arg" = "--last" ]
+  then
+    last=1
+  elif [ "$arg" = "--view" ]
+  then
+    view=1
+  elif [ "$arg" = "--watch" ]
+  then
+    watch=1
+  elif [ "$arg" = "--notify" ]
+  then
+    notify=1
+  elif [ "$arg" = "--" ]
+  then
+    parsing_complete=1
+    post_command=$@
+  else
+    additional_arg=$arg
+  fi
+done
+
+if [ "$last" = "1" ] && [ ! -z "$last_run_id" ]
+then
+  run_id=$last_run_id
+fi
+
+_list () {
+  runs=$(gh run list --json createdAt,headBranch,databaseId,status -w $workflow_id)
+  echo "$runs" | jq --raw-output '.[] | [.databaseId, .headBranch, .createdAt, .status] | @tsv'
+}
+
+_select () {
+  parsed_runs=$(_list)
+
+  if [ -z "$run_id" ]
+  then
+    selected_run=$(echo "$parsed_runs" | FZF)
+    run_id=$(echo "$selected_run" | awk '{print $1}')
+
+    if [ "$command" = "select" ] && [ "$view" = "1" ]
+    then
+      gh run view $run_id
+    fi
+
+    echo $run_id > $lastrunfile
+  fi
+
+  if [ "$command" = "select" ] && [ "$view" = "1" ]
+  then
+    gh run view $run_id
+  fi
+
+  echo $run_id
+}
+
+_watch () {
+  run_id=$(_select)
+
+  gh run watch $run_id --exit-status
+  exit_code=$?
+
+  if [ "$notify" = "1" ]
+  then
+    if [ $exit_code = 0 ]
+    then
+      title="✅ $target run successful"
+      body="Run $run_id finished successfully"
+    else
+      title="⚠️  $target run unsuccessful"
+      body="Run $run_id was not successful"
+    fi
+
+    show-notification "$title" "$body"
+  fi
+}
+
+_run () {
+  branch=$additional_arg
+
+  if [ -z "$branch" ]
+  then
+    branch=$(current-branch)
+  fi
+
+  gh workflow run $workflow_id -F git_branch=$branch
+
+  sleep 2
+
+  if [ "$watch" = "1" ]
+  then
+    _watch
+  fi
+}
+
+_browse () {
+  open https://airstream-hipcamp-$(current-branch | tr "/" "-").vercel.app/en-US
+}
+
+case $command in
+  select) _select;;
+  watch) _watch;;
+  list) _list;;
+  run) _run;;
+  browse) _browse;;
+esac
+
+if [ "$open" = "1" ]
+then
+  gh run view --web $run_id
+fi
+
+if [ ! -z "$post_command" ]
+then
+  if [ "$notify" = "1" ]
+  then
+    show-notification "Running command..." "$post_command"
+  fi
+
+  $post_command
+fi
