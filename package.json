@@ -1,0 +1,11 @@
+{
+  "name": "binfiles",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:benjaminbergstein/binfiles",
+  "author": "Ben Bergstein <ben.bergstein+github@hipcamp.com>",
+  "license": "MIT",
+  "dependencies": {
+    "enquirer": "^2.3.6"
+  }
+}

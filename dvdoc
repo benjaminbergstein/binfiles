@@ -1,0 +1,26 @@
+#!/bin/bash
+
+RED='\033[0;33m'
+NC='\033[0m'
+
+args=$1
+shift
+
+brown () {
+  printf "${RED}$1${NC}"
+}
+
+if [ "$2" = "--help" ]
+then
+  script=$(basename $1)
+  description=$(echo "$args" | jq --raw-output '.description')
+  sample=$(echo "$args" | jq --raw-output '.sample')
+
+  brown "$script (1) | benenv \n\n"
+  brown "USAGE\n\n"
+  echo "  $sample"
+  brown "\nNAME\n"
+  echo "   $script - $description"
+else
+  exit 1
+fi

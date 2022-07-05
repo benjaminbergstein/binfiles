@@ -5,7 +5,7 @@ A collection of scripts that I keep in ~/.bin.
 To use run:
 
 ```
-$ git clone git@github.com:benjaminbergstein/binfiles.git > ~/.bin
+$ git clone git@github.com:benjaminbergstein/binfiles.git ~/.bin
 ````
 
 Then add the following to your bash profile somewhere (`~/.bash_profile`, `~/.bashrc`, etc.):
