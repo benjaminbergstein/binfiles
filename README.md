@@ -10,7 +10,9 @@ $ git clone git@github.com:benjaminbergstein/binfiles.git ~/.bin
 
 Then add the following to your bash profile somewhere (`~/.bash_profile`, `~/.bashrc`, etc.):
 
-export PATH="/Users/<your-user>/.bin:$PATH"
+```
+export PATH="/Users/your-user/.bin:$PATH"
+```
 
 # Commands
 
