@@ -1,5 +1,10 @@
 #!/bin/bash
 
+dvdoc '{
+  "sample": "create-stub EXECUTABLE",
+  "description": "Creates a bash-based, executable script file on $PATH"
+}' $0 $@ && exit
+
 command=$1
 bindir=$(dirname $0)
 scriptloc=$bindir/$command

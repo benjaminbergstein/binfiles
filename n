@@ -3,6 +3,7 @@
 BROWN='\033[0;33m'
 NC='\033[0m' # No Color
 
+gitMain=$(app-config gitMain)
 color () {
   printf "${BROWN}${1}${NC}"
 }
@@ -14,6 +15,6 @@ color "Fetching latest code...\n"
 git fetch
 
 color "Checkout latest master...\n"
-git checkout remotes/origin/master
+git checkout remotes/origin/$gitMain
 
 git checkout -b $branch

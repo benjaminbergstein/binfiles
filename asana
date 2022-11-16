@@ -1,0 +1,4 @@
+#!/bin/bash
+
+bindir=$(dirname $0)
+$bindir/plugins/asana/asana $@

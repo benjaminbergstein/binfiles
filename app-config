@@ -1,4 +1,9 @@
 #!/bin/bash
 
+dvdoc '{
+  "sample": "app-config KEY",
+  "description": "Get the value for a key of the current app’s config"
+}' $0 $@ && exit
+
 app=$(detect-app)
 cat "$HOME/.config/dv/config.json" | jq --raw-output ".apps.$app.$1"

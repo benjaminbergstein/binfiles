@@ -47,9 +47,9 @@ async function main () {
     }
 
     if (doCommit) {
-      await exec("git", ["commit"])
+      await exec("git", ["commit", "--no-verify"])
     } else {
-      await exec("git", ["commit", "--amend", "--no-edit"])
+      await exec("git", ["commit", "--no-verify", "--amend", "--no-edit"])
     }
 
     if (doPush) {

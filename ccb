@@ -1,3 +1,6 @@
 #!/bin/bash
 
+dvdoc '{"description":"Copies current git branch to clipboard."}' $0 $@ && exit
+
 current-branch | pbcopy
+
