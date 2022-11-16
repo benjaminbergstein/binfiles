@@ -1,0 +1,14 @@
+#!/bin/bash
+
+infile=$(find . | grep ".mov" | FZF)
+if [ ! -f "$infile" ]
+then
+  echo "No such file: $infile"
+  exit 1
+fi
+
+printf "Output filename? (without .mp4 extension) "
+read -r outfile
+ffmpeg -i "$infile" -vcodec h264 -acodec mp2 "$outfile.mp4"
+
+ffmpeg -i "$outfile.mp4" -vf "fps=3,scale=720:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 "$outfile.gif"
