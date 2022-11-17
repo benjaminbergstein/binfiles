@@ -1,19 +1,21 @@
 #!/bin/bash
 
-main=$1
-extgroup=$2
+dvdoc '{
+  "sample": "git-changed",
+  "description": "List only changed files since ref of remote’s main branch"
+}' $0 $@ && exit
+
+main=$(app-config gitMain)
+extgroup=$(app-config gitChangedExtGroup)
 
 if [ -z "$main" ]
 then
   main=master
 fi
 
-
-command="git diff --relative remotes/origin/$main head --name-only --diff-filter=d -- "
-
 if [ "$extgroup" = "js" ]
 then
-  $command '*.js' '*.jsx' '*.ts' '*.tsx'
+  git show --diff-filter=AM --pretty="" --name-only $(git rev-list ^remotes/origin/$main HEAD) -- '*.js' '*.jsx' '*.ts' '*.tsx'
 else
-  $command '*.rb'
+  git show --diff-filter=AM --pretty="" --name-only $(git rev-list ^remotes/origin/$main HEAD) -- '*.rb'
 fi
