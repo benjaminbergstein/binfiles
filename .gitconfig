@@ -1,0 +1,17 @@
+[user]
+name = Benjamin Bergstein
+email = bennyjbergstein+github@gmail.com
+[push]
+	default = current
+[alias]
+	co = checkout
+	ci = commit
+	f = fetch
+	st = status
+	pf = push --force-with-lease
+	cane = commit --amend --no-edit
+[credential]
+	helper = !aws codecommit credential-helper $@
+	UseHttpPath = true
+[core]
+	excludesfile = /Users/benjaminbergstein/.gitignore

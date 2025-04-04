@@ -33,6 +33,7 @@ const exec = async (cmd, args) => {
 }
 
 async function main () {
+  await exec("git", ["log", "-1"])
   try {
     answer = await prompt.run()
     const doStage = answer.includes(stageChoice)
