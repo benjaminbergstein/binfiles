@@ -1,0 +1,6 @@
+#!/bin/bash
+
+repo=$(app-config repo)
+
+open https://www.github.com/$repo/pulls/benjaminbergstein
+
